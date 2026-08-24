@@ -120,9 +120,8 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             cmdBuilder.append(args[i]);
         }
         String commandStr = cmdBuilder.toString();
-
-        // 使用 Folia 兼容的全局调度器执行命令
-        Bukkit.getGlobalRegionScheduler().run(plugin, task -> {
+        
+        plugin.getFoliaLib().getScheduler().runNextTick(task -> {
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), commandStr);
         });
     }
