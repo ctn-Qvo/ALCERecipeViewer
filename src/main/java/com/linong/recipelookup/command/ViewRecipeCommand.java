@@ -120,7 +120,11 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             cmdBuilder.append(args[i]);
         }
         String commandStr = cmdBuilder.toString();
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), commandStr);
+
+        // 使用 Folia 兼容的全局调度器执行命令
+        Bukkit.getGlobalRegionScheduler().run(plugin, task -> {
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), commandStr);
+        });
     }
 
     private void sendHelp(Player player) {
