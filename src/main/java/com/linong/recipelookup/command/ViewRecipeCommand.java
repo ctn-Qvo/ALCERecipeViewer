@@ -137,12 +137,12 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
                     String methodName = method.getName();
                     if ("sendMessage".equals(methodName)) {
                         Class<?>[] paramTypes = method.getParameterTypes();
-                        if (paramTypes.length == 1 && paramTypes[0] == String.class) {
-                            player.sendMessage((String) args2[0]);
-                            return null;
-                        } else if (paramTypes.length == 1 && paramTypes[0] == String[].class) {
-                            player.sendMessage((String[]) args2[0]);
-                            return null;
+                        if (paramTypes.length == 1) {
+                            if (paramTypes[0] == String.class) {
+                                player.sendMessage((String) args2[0]);
+                            } else if (paramTypes[0] == String[].class) {
+                                player.sendMessage((String[]) args2[0]);
+                            }
                         } else if (paramTypes.length == 2 && paramTypes[0] == UUID.class) {
                             Object msg = args2[1];
                             if (msg instanceof String) {
@@ -150,8 +150,8 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
                             } else if (msg instanceof String[]) {
                                 player.sendMessage((String[]) msg);
                             }
-                            return null;
                         }
+                        return null;
                     }
                     return method.invoke(console, args2);
                 }
