@@ -22,11 +22,12 @@ import org.bukkit.plugin.SimplePluginManager;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -36,33 +37,11 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
     private final ALCERecipeViewer plugin;
     private final RecipeGUI gui;
     private final ConfigManager config;
-    private final ConcurrentHashMap<UUID, Player> commandSessions = new ConcurrentHashMap<>();
-    private final Handler logHandler;
 
     public ViewRecipeCommand(ALCERecipeViewer plugin) {
         this.plugin = plugin;
         this.gui = plugin.getRecipeGUI();
         this.config = plugin.getConfigManager();
-
-        logHandler = new Handler() {
-            @Override
-            public void publish(LogRecord record) {
-                Player player = commandSessions.values().stream().findFirst().orElse(null);
-                if (player != null) {
-                    String msg = record.getMessage();
-                    if (msg != null && !msg.isEmpty()) {
-                        player.sendMessage(msg);
-                    }
-                }
-            }
-
-            @Override
-            public void flush() {}
-
-            @Override
-            public void close() throws SecurityException {}
-        };
-        Logger.getLogger("").addHandler(logHandler);
     }
 
     @Override
@@ -156,8 +135,35 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         }
         String commandStr = cmdBuilder.toString();
 
+        Logger rootLogger = Logger.getLogger("");
+        List<Handler> consoleHandlers = new ArrayList<>();
+        for (Handler handler : rootLogger.getHandlers()) {
+            if (handler instanceof ConsoleHandler) {
+                consoleHandlers.add(handler);
+            }
+        }
+        for (Handler handler : consoleHandlers) {
+            rootLogger.removeHandler(handler);
+        }
+
+        Handler logHandler = new Handler() {
+            @Override
+            public void publish(LogRecord record) {
+                String msg = record.getMessage();
+                if (msg != null && !msg.isEmpty()) {
+                    player.sendMessage(msg);
+                }
+            }
+
+            @Override
+            public void flush() {}
+
+            @Override
+            public void close() throws SecurityException {}
+        };
+        rootLogger.addHandler(logHandler);
+
         plugin.getFoliaLib().getScheduler().runNextTick(task -> {
-            commandSessions.put(player.getUniqueId(), player);
             try {
                 ForwardConsoleSender wrappedSender = new ForwardConsoleSender(player);
                 CommandMap commandMap = getCommandMap();
@@ -169,7 +175,10 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             } catch (Exception e) {
                 player.sendMessage("§c执行命令时发生错误: " + e.getMessage());
             } finally {
-                commandSessions.remove(player.getUniqueId());
+                rootLogger.removeHandler(logHandler);
+                for (Handler handler : consoleHandlers) {
+                    rootLogger.addHandler(handler);
+                }
             }
         });
     }
