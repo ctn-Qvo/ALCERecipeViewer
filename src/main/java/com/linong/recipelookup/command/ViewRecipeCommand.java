@@ -366,15 +366,17 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         }
 
         @Override
-        public void acceptConversationInput(String input) {
+        public boolean acceptConversationInput(String input) {
+            return false;
         }
 
         @Override
-        public void beginConversation(Conversation conversation) {
+        public boolean beginConversation(Conversation conversation) {
+            return false;
         }
 
         @Override
-        public void abandonConversation(Conversation conversation, ConversationAbandonedEvent details) {
+        public void abandonConversation(Conversation conversation) {
         }
     }
 }
