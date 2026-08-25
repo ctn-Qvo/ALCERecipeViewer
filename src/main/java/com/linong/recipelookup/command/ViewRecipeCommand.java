@@ -157,8 +157,18 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
                 }
         );
 
+        CommandMap commandMap = getCommandMap();
+        if (commandMap == null) {
+            player.sendMessage("§c无法获取命令映射，请检查服务端兼容性。");
+            return;
+        }
+
         plugin.getFoliaLib().getScheduler().runNextTick(task -> {
-            Bukkit.dispatchCommand(wrappedSender, commandStr);
+            try {
+                commandMap.dispatch(wrappedSender, commandStr);
+            } catch (Exception e) {
+                player.sendMessage("§c执行命令时发生错误: " + e.getMessage());
+            }
         });
     }
 
