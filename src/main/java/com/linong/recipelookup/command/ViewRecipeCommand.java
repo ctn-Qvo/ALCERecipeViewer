@@ -264,16 +264,6 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         }
 
         @Override
-        public void sendRawMessage(String message) {
-            forward(message);
-        }
-
-        @Override
-        public void sendRawMessage(UUID sender, String message) {
-            forward(message);
-        }
-
-        @Override
         public boolean isPermissionSet(String name) {
             return true;
         }
@@ -360,7 +350,6 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             };
         }
 
-        // ===== Conversable 接口方法（Paper 1.21.3 正确签名） =====
         @Override
         public boolean isConversing() {
             return false;
