@@ -34,7 +34,6 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
     private final RecipeGUI gui;
     private final ConfigManager config;
     private final ThreadLocal<Player> commandOwner = new ThreadLocal<>();
-    private final Logger rootLogger = Logger.getLogger("");
     private final Handler logHandler;
 
     public ViewRecipeCommand(ALCERecipeViewer plugin) {
@@ -42,15 +41,14 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         this.gui = plugin.getRecipeGUI();
         this.config = plugin.getConfigManager();
 
-        // 创建临时日志处理器，用于捕获插件日志
         logHandler = new Handler() {
             @Override
             public void publish(LogRecord record) {
                 Player player = commandOwner.get();
                 if (player != null) {
-                    String message = record.getMessage();
-                    if (message != null && !message.isEmpty()) {
-                        player.sendMessage(message);
+                    String msg = record.getMessage();
+                    if (msg != null && !msg.isEmpty()) {
+                        player.sendMessage(msg);
                     }
                 }
             }
@@ -61,7 +59,7 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             @Override
             public void close() throws SecurityException {}
         };
-        rootLogger.addHandler(logHandler);
+        Logger.getLogger("").addHandler(logHandler);
     }
 
     @Override
@@ -155,27 +153,22 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         }
         String commandStr = cmdBuilder.toString();
 
-        // 设置命令上下文
-        commandOwner.set(player);
-        try {
-            ForwardConsoleSender wrappedSender = new ForwardConsoleSender(player);
-            plugin.getFoliaLib().getScheduler().runNextTick(task -> {
-                // 使用 CommandMap 执行，会触发回显 > command，但我们可以通过自定义 CommandSender 捕获输出
+        plugin.getFoliaLib().getScheduler().runNextTick(task -> {
+            commandOwner.set(player);
+            try {
+                ForwardConsoleSender wrappedSender = new ForwardConsoleSender(player);
                 CommandMap commandMap = getCommandMap();
                 if (commandMap == null) {
                     player.sendMessage("§c无法获取命令映射，请检查服务端兼容性。");
                     return;
                 }
-                try {
-                    commandMap.dispatch(wrappedSender, commandStr);
-                } catch (Exception e) {
-                    player.sendMessage("§c执行命令时发生错误: " + e.getMessage());
-                }
-            });
-        } finally {
-            // 清除上下文
-            commandOwner.remove();
-        }
+                commandMap.dispatch(wrappedSender, commandStr);
+            } catch (Exception e) {
+                player.sendMessage("§c执行命令时发生错误: " + e.getMessage());
+            } finally {
+                commandOwner.remove();
+            }
+        });
     }
 
     private void sendHelp(Player player) {
@@ -258,6 +251,16 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         @Override
         public void sendMessage(UUID sender, String... messages) {
             target.sendMessage(messages);
+        }
+
+        @Override
+        public void sendRawMessage(String message) {
+            target.sendMessage(message);
+        }
+
+        @Override
+        public void sendRawMessage(UUID sender, String message) {
+            target.sendMessage(message);
         }
 
         @Override
@@ -345,11 +348,6 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
                     target.sendMessage(messages);
                 }
             };
-        }
-
-        @Override
-        public void sendRawMessage(String message) {
-            target.sendMessage(message);
         }
     }
 }
