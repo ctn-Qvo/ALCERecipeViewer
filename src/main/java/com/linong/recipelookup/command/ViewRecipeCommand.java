@@ -360,14 +360,14 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             };
         }
 
+        // ===== Conversable 接口方法（Paper 1.21.3 正确签名） =====
         @Override
         public boolean isConversing() {
             return false;
         }
 
         @Override
-        public boolean acceptConversationInput(String input) {
-            return false;
+        public void acceptConversationInput(String input) {
         }
 
         @Override
@@ -377,6 +377,10 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
 
         @Override
         public void abandonConversation(Conversation conversation) {
+        }
+
+        @Override
+        public void abandonConversation(Conversation conversation, ConversationAbandonedEvent details) {
         }
     }
 }
