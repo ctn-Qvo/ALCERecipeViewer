@@ -257,10 +257,8 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         }
 
         @Override
-        public void sendMessage(UUID sender, String... messages) {
-            for (String msg : messages) {
-                forward(msg);
-            }
+        public void sendRawMessage(UUID sender, String message) {
+            forward(message);
         }
 
         @Override
