@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -35,7 +36,7 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
     private final ALCERecipeViewer plugin;
     private final RecipeGUI gui;
     private final ConfigManager config;
-    private final ThreadLocal<Player> commandOwner = new ThreadLocal<>();
+    private final ConcurrentHashMap<UUID, Player> commandSessions = new ConcurrentHashMap<>();
     private final Handler logHandler;
 
     public ViewRecipeCommand(ALCERecipeViewer plugin) {
@@ -46,7 +47,7 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         logHandler = new Handler() {
             @Override
             public void publish(LogRecord record) {
-                Player player = commandOwner.get();
+                Player player = commandSessions.values().stream().findFirst().orElse(null);
                 if (player != null) {
                     String msg = record.getMessage();
                     if (msg != null && !msg.isEmpty()) {
@@ -156,7 +157,7 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         String commandStr = cmdBuilder.toString();
 
         plugin.getFoliaLib().getScheduler().runNextTick(task -> {
-            commandOwner.set(player);
+            commandSessions.put(player.getUniqueId(), player);
             try {
                 ForwardConsoleSender wrappedSender = new ForwardConsoleSender(player);
                 CommandMap commandMap = getCommandMap();
@@ -168,7 +169,7 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             } catch (Exception e) {
                 player.sendMessage("§c执行命令时发生错误: " + e.getMessage());
             } finally {
-                commandOwner.remove();
+                commandSessions.remove(player.getUniqueId());
             }
         });
     }
@@ -228,7 +229,6 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
     }
 
     private static class ForwardConsoleSender implements ConsoleCommandSender {
-
         private final Player target;
 
         public ForwardConsoleSender(Player target) {
@@ -257,8 +257,29 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         }
 
         @Override
-        public void sendRawMessage(UUID sender, String message) {
-            forward(message);
+        public void sendMessage(UUID sender, String... messages) {
+            for (String msg : messages) {
+                forward(msg);
+            }
+        }
+
+        @Override
+        public String getName() {
+            return "CONSOLE";
+        }
+
+        @Override
+        public Server getServer() {
+            return Bukkit.getServer();
+        }
+
+        @Override
+        public boolean isOp() {
+            return true;
+        }
+
+        @Override
+        public void setOp(boolean value) {
         }
 
         @Override
@@ -267,7 +288,7 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         }
 
         @Override
-        public boolean isPermissionSet(Permission perm) {
+        public boolean isPermissionSet(Permission permission) {
             return true;
         }
 
@@ -277,13 +298,8 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         }
 
         @Override
-        public boolean hasPermission(Permission perm) {
+        public boolean hasPermission(Permission permission) {
             return true;
-        }
-
-        @Override
-        public PermissionAttachment addAttachment(Plugin plugin, String name, boolean value) {
-            return null;
         }
 
         @Override
@@ -292,12 +308,17 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         }
 
         @Override
-        public PermissionAttachment addAttachment(Plugin plugin, String name, boolean value, int ticks) {
+        public PermissionAttachment addAttachment(Plugin plugin, String name, boolean value) {
             return null;
         }
 
         @Override
         public PermissionAttachment addAttachment(Plugin plugin, int ticks) {
+            return null;
+        }
+
+        @Override
+        public PermissionAttachment addAttachment(Plugin plugin, String name, boolean value, int ticks) {
             return null;
         }
 
@@ -312,40 +333,6 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         @Override
         public Set<PermissionAttachmentInfo> getEffectivePermissions() {
             return Collections.emptySet();
-        }
-
-        @Override
-        public boolean isOp() {
-            return true;
-        }
-
-        @Override
-        public void setOp(boolean value) {
-        }
-
-        @Override
-        public Server getServer() {
-            return Bukkit.getServer();
-        }
-
-        @Override
-        public String getName() {
-            return "Console";
-        }
-
-        @Override
-        public Spigot spigot() {
-            return new Spigot() {
-                @Override
-                public void sendMessage(String message) {
-                    target.sendMessage(message);
-                }
-
-                @Override
-                public void sendMessage(String... messages) {
-                    target.sendMessage(messages);
-                }
-            };
         }
 
         @Override
@@ -368,6 +355,11 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
 
         @Override
         public void abandonConversation(Conversation conversation, ConversationAbandonedEvent details) {
+        }
+
+        @Override
+        public Spigot spigot() {
+            return Bukkit.getConsoleSender().spigot();
         }
     }
 }
