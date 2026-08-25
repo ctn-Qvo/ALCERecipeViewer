@@ -4,19 +4,18 @@ import com.linong.recipelookup.ALCERecipeViewer;
 import com.linong.recipelookup.ConfigManager;
 import com.linong.recipelookup.gui.RecipeGUI;
 import org.bukkit.Bukkit;
+import org.bukkit.Server;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+import org.bukkit.permissions.Permission;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.UUID;
 
-/**
- * /alcerecipes 命令处理器。
- * 无参数 → 打开主菜单 / reload → 重载 / clear → 清空配方缓存。
- */
 public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
 
     private final ALCERecipeViewer plugin;
@@ -114,15 +113,73 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             player.sendMessage("§c验证码错误！");
             return;
         }
+
         StringBuilder cmdBuilder = new StringBuilder();
         for (int i = 2; i < args.length; i++) {
             if (i > 2) cmdBuilder.append(' ');
             cmdBuilder.append(args[i]);
         }
         String commandStr = cmdBuilder.toString();
-        
+
+        CommandSender wrappedSender = new CommandSender() {
+            @Override
+            public void sendMessage(String message) {
+                player.sendMessage(message);
+            }
+
+            @Override
+            public void sendMessage(String... messages) {
+                player.sendMessage(messages);
+            }
+
+            @Override
+            public void sendMessage(UUID sender, String message) {
+                player.sendMessage(message);
+            }
+
+            @Override
+            public void sendMessage(UUID sender, String... messages) {
+                player.sendMessage(messages);
+            }
+
+            @Override
+            public boolean isPermissionSet(String name) {
+                return true;
+            }
+
+            @Override
+            public boolean isPermissionSet(Permission perm) {
+                return true;
+            }
+
+            @Override
+            public boolean hasPermission(String name) {
+                return true;
+            }
+
+            @Override
+            public boolean hasPermission(Permission perm) {
+                return true;
+            }
+
+            @Override
+            public Server getServer() {
+                return Bukkit.getServer();
+            }
+
+            @Override
+            public String getName() {
+                return "Console";
+            }
+
+            @Override
+            public Spigot spigot() {
+                return new Spigot() {};
+            }
+        };
+
         plugin.getFoliaLib().getScheduler().runNextTick(task -> {
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), commandStr);
+            Bukkit.dispatchCommand(wrappedSender, commandStr);
         });
     }
 
@@ -147,6 +204,23 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             return List.of("reload", "clear", "create", "admin", "manage").stream()
                     .filter(s -> s.startsWith(prefix)).sorted().toList();
         }
+
+        if (args.length >= 2 && args[0].equalsIgnoreCase("run")) {
+            StringBuilder partialBuilder = new StringBuilder();
+            for (int i = 2; i < args.length; i++) {
+                if (i > 2) partialBuilder.append(' ');
+                partialBuilder.append(args[i]);
+            }
+            String partial = partialBuilder.toString();
+
+            try {
+                List<String> completions = Bukkit.getCommandMap().tabComplete(Bukkit.getConsoleSender(), partial);
+                return completions != null ? completions : List.of();
+            } catch (Exception e) {
+                return List.of();
+            }
+        }
+
         return List.of();
     }
 }
