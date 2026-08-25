@@ -11,6 +11,8 @@ import org.bukkit.command.CommandMap;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.conversations.Conversation;
+import org.bukkit.conversations.ConversationAbandonedEvent;
 import org.bukkit.entity.Player;
 import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionAttachment;
@@ -233,34 +235,42 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             this.target = target;
         }
 
+        private void forward(String message) {
+            target.sendMessage(message);
+        }
+
         @Override
         public void sendMessage(String message) {
-            target.sendMessage(message);
+            forward(message);
         }
 
         @Override
         public void sendMessage(String... messages) {
-            target.sendMessage(messages);
+            for (String msg : messages) {
+                forward(msg);
+            }
         }
 
         @Override
         public void sendMessage(UUID sender, String message) {
-            target.sendMessage(message);
+            forward(message);
         }
 
         @Override
         public void sendMessage(UUID sender, String... messages) {
-            target.sendMessage(messages);
+            for (String msg : messages) {
+                forward(msg);
+            }
         }
 
         @Override
         public void sendRawMessage(String message) {
-            target.sendMessage(message);
+            forward(message);
         }
 
         @Override
         public void sendRawMessage(UUID sender, String message) {
-            target.sendMessage(message);
+            forward(message);
         }
 
         @Override
@@ -348,6 +358,23 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
                     target.sendMessage(messages);
                 }
             };
+        }
+
+        @Override
+        public boolean isConversing() {
+            return false;
+        }
+
+        @Override
+        public void acceptConversationInput(String input) {
+        }
+
+        @Override
+        public void beginConversation(Conversation conversation) {
+        }
+
+        @Override
+        public void abandonConversation(Conversation conversation, ConversationAbandonedEvent details) {
         }
     }
 }
