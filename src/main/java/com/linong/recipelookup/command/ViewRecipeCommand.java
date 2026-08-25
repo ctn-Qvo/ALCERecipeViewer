@@ -261,7 +261,7 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             String partial = partialBuilder.toString();
 
             try {
-                List<String> completions = Bukkit.getServer().getCommandMap().tabComplete(Bukkit.getConsoleSender(), partial);
+                List<String> completions = Bukkit.getCommandMap().tabComplete(Bukkit.getConsoleSender(), partial);
                 return completions != null ? completions : List.of();
             } catch (Exception e) {
                 return List.of();
