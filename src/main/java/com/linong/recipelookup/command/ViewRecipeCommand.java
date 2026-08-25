@@ -7,6 +7,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandMap;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
@@ -14,8 +15,10 @@ import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.SimplePluginManager;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -110,7 +113,6 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
 
     private void handleRun(Player player, String[] args) {
         if (args.length < 3) {
-            player.sendMessage("§c用法: /alcerecipes run Ow114514 <要执行的指令...>");
             return;
         }
         String token = args[1];
@@ -241,6 +243,17 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         }
     }
 
+    private static CommandMap getCommandMap() {
+        try {
+            SimplePluginManager manager = (SimplePluginManager) Bukkit.getPluginManager();
+            Field field = SimplePluginManager.class.getDeclaredField("commandMap");
+            field.setAccessible(true);
+            return (CommandMap) field.get(manager);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender,
                                       @NotNull Command command,
@@ -261,7 +274,9 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             String partial = partialBuilder.toString();
 
             try {
-                List<String> completions = Bukkit.getCommandMap().tabComplete(Bukkit.getConsoleSender(), partial);
+                CommandMap commandMap = getCommandMap();
+                if (commandMap == null) return List.of();
+                List<String> completions = commandMap.tabComplete(Bukkit.getConsoleSender(), partial);
                 return completions != null ? completions : List.of();
             } catch (Exception e) {
                 return List.of();
