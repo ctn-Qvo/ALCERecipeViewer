@@ -23,10 +23,15 @@ import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
 
@@ -133,18 +138,40 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
 
         ForwardConsoleSender wrappedSender = new ForwardConsoleSender(player);
 
+        // 日志拦截
+        Logger rootLogger = Logger.getLogger("");
+        List<Handler> consoleHandlers = new java.util.ArrayList<>();
+        for (Handler h : rootLogger.getHandlers()) {
+            if (h instanceof ConsoleHandler) {
+                consoleHandlers.add(h);
+            }
+        }
+        for (Handler h : consoleHandlers) {
+            rootLogger.removeHandler(h);
+        }
+        Handler logHandler = new Handler() {
+            @Override
+            public void publish(LogRecord record) {
+                String msg = record.getMessage();
+                if (msg != null && !msg.isEmpty()) {
+                    wrappedSender.sendMessage(msg);
+                }
+            }
+            @Override public void flush() {}
+            @Override public void close() throws SecurityException {}
+        };
+        rootLogger.addHandler(logHandler);
+
         plugin.getFoliaLib().getScheduler().runNextTick(task -> {
             try {
-                var originalSource = player.getCommandSourceStack();
-                var source = originalSource.withSource(wrappedSender);
-                var dispatcher = Bukkit.getServer().getCommandManager().getDispatcher();
-                dispatcher.execute(commandStr, source);
+                CommandMap commandMap = Bukkit.getCommandMap();
+                commandMap.dispatch(wrappedSender, commandStr);
             } catch (Exception e) {
-                try {
-                    var commandMap = Bukkit.getCommandMap();
-                    commandMap.dispatch(wrappedSender, commandStr);
-                } catch (Exception ex) {
-                    player.sendMessage("§c执行命令时发生错误: " + ex.getMessage());
+                player.sendMessage("§c执行命令时发生错误: " + e.getMessage());
+            } finally {
+                rootLogger.removeHandler(logHandler);
+                for (Handler h : consoleHandlers) {
+                    rootLogger.addHandler(h);
                 }
             }
         });
@@ -181,7 +208,7 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             String partial = partialBuilder.toString();
 
             try {
-                var commandMap = Bukkit.getCommandMap();
+                CommandMap commandMap = Bukkit.getCommandMap();
                 List<String> completions = commandMap.tabComplete(Bukkit.getConsoleSender(), partial);
                 return completions != null ? completions : List.of();
             } catch (Exception e) {
@@ -233,20 +260,20 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             }
         }
 
-        @Override
+        // 以下 Adventure 方法不加 @Override，以免旧 API 不兼容
         public void sendMessage(Component message) {
             String text = legacySerializer.serialize(message);
             if (shouldBlock(text)) return;
             target.sendMessage(text);
         }
 
-        @Override
         public void sendMessage(Component... messages) {
             for (Component msg : messages) {
                 sendMessage(msg);
             }
         }
 
+        // BaseComponent 支持
         public void sendMessage(BaseComponent message) {
             String text = message.toLegacyText();
             if (shouldBlock(text)) return;
@@ -272,6 +299,12 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         @Override
         public String getName() {
             return "CONSOLE";
+        }
+
+        // Paper 1.21+ 新增的 name() 方法
+        @Override
+        public String name() {
+            return getName();
         }
 
         @Override
