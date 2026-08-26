@@ -15,25 +15,31 @@
     <properties>
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <paper.version>1.21.11</paper.version>
     </properties>
 
     <repositories>
-        <repository>
-            <id>spigot-repo</id>
-            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
-        </repository>
+        <!-- PaperMC 仓库（主要 API 来源） -->
         <repository>
             <id>papermc</id>
             <url>https://repo.papermc.io/repository/maven-public/</url>
         </repository>
+        <!-- Spigot 仓库（备用） -->
+        <repository>
+            <id>spigot-repo</id>
+            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+        </repository>
+        <!-- JitPack -->
         <repository>
             <id>jitpack.io</id>
             <url>https://jitpack.io</url>
         </repository>
+        <!-- CraftEngine -->
         <repository>
             <id>momirealms</id>
             <url>https://repo.momirealms.net/releases/</url>
         </repository>
+        <!-- tcoded 仓库（FoliaLib） -->
         <repository>
             <id>tcoded-releases</id>
             <url>https://repo.tcoded.com/releases</url>
@@ -41,11 +47,11 @@
     </repositories>
 
     <dependencies>
-        <!-- Spigot API -->
+        <!-- Paper API 1.21.11（按您要求指定版本） -->
         <dependency>
-            <groupId>org.spigotmc</groupId>
-            <artifactId>spigot-api</artifactId>
-            <version>1.21.3-R0.1-SNAPSHOT</version>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+            <version>${paper.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -63,23 +69,7 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Adventure 核心（Minimessage 格式化） -->
-        <dependency>
-            <groupId>net.kyori</groupId>
-            <artifactId>adventure-text-minimessage</artifactId>
-            <version>4.18.0</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- Adventure 纯文本序列化 -->
-        <dependency>
-            <groupId>net.kyori</groupId>
-            <artifactId>adventure-text-serializer-plain</artifactId>
-            <version>4.18.0</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- Adventure Legacy 序列化器（用于将 Component 转换为带 § 的字符串） -->
+        <!-- Adventure Legacy 序列化器 -->
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-text-serializer-legacy</artifactId>
@@ -87,7 +77,7 @@
             <scope>compile</scope>
         </dependency>
 
-        <!-- FoliaLib：Folia/Paper/Spigot 调度器兼容层 -->
+        <!-- FoliaLib -->
         <dependency>
             <groupId>com.tcoded</groupId>
             <artifactId>FoliaLib</artifactId>
