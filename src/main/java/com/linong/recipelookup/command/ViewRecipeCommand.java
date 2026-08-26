@@ -138,9 +138,8 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
 
         ForwardConsoleSender wrappedSender = new ForwardConsoleSender(player);
 
-        // 日志拦截
         Logger rootLogger = Logger.getLogger("");
-        java.util.List<Handler> consoleHandlers = new java.util.ArrayList<>();
+        List<Handler> consoleHandlers = new java.util.ArrayList<>();
         for (Handler h : rootLogger.getHandlers()) {
             if (h instanceof ConsoleHandler) {
                 consoleHandlers.add(h);
@@ -295,10 +294,9 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             sendMessage(message);
         }
 
-        // Paper 1.21+ 要求 name(): Component
         @Override
-        public Component name() {
-            return Component.text("CONSOLE");
+        public String getName() {
+            return "CONSOLE";
         }
 
         @Override
