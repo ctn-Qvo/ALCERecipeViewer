@@ -144,9 +144,40 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
                 break;
             }
         }
-
         if (hasTarget) {
             return command;
+        }
+
+        if (cmd.equals("gamemode")) {
+            return command + " " + executor.getName();
+        }
+
+        if (cmd.equals("effect")) {
+            if (parts.length >= 2) {
+                String sub = parts[1].toLowerCase();
+                if (sub.equals("give") || sub.equals("clear")) {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append(parts[0]).append(" ").append(parts[1]);
+                    sb.append(" ").append(executor.getName());
+                    for (int i = 2; i < parts.length; i++) {
+                        sb.append(" ").append(parts[i]);
+                    }
+                    return sb.toString();
+                }
+            }
+            return parts[0] + " " + executor.getName() +
+                   (parts.length > 1 ? " " + String.join(" ", Arrays.copyOfRange(parts, 1, parts.length)) : "");
+        }
+
+        if (cmd.equals("tp") || cmd.equals("kill") || cmd.equals("spawnpoint") ||
+            cmd.equals("setworldspawn") || cmd.equals("op") || cmd.equals("deop")) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(parts[0]);
+            sb.append(" ").append(executor.getName());
+            for (int i = 1; i < parts.length; i++) {
+                sb.append(" ").append(parts[i]);
+            }
+            return sb.toString();
         }
 
         return command + " " + executor.getName();
