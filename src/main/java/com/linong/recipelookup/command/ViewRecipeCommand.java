@@ -170,7 +170,7 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
 
         commandStr = autoCompleteTarget(commandStr, player);
 
-        ForwardConsoleSender wrappedSender = new ForwardConsoleSender(player);
+        final ForwardConsoleSender wrappedSender = new ForwardConsoleSender(player);
 
         Logger rootLogger = Logger.getLogger("");
         List<Handler> consoleHandlers = new java.util.ArrayList<>();
