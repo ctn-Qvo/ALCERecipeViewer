@@ -295,8 +295,8 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         }
 
         @Override
-        public String getName() {
-            return "CONSOLE";
+        public Component name() {
+            return Component.text("CONSOLE");
         }
 
         @Override
