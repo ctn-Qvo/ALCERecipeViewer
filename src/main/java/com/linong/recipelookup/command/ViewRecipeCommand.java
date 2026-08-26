@@ -140,7 +140,7 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
 
         // 日志拦截
         Logger rootLogger = Logger.getLogger("");
-        List<Handler> consoleHandlers = new java.util.ArrayList<>();
+        java.util.List<Handler> consoleHandlers = new java.util.ArrayList<>();
         for (Handler h : rootLogger.getHandlers()) {
             if (h instanceof ConsoleHandler) {
                 consoleHandlers.add(h);
@@ -260,7 +260,7 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             }
         }
 
-        // 以下 Adventure 方法不加 @Override，以免旧 API 不兼容
+        @Override
         public void sendMessage(Component message) {
             String text = legacySerializer.serialize(message);
             if (shouldBlock(text)) return;
@@ -273,7 +273,6 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             }
         }
 
-        // BaseComponent 支持
         public void sendMessage(BaseComponent message) {
             String text = message.toLegacyText();
             if (shouldBlock(text)) return;
@@ -296,15 +295,10 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             sendMessage(message);
         }
 
+        // Paper 1.21+ 要求 name(): Component
         @Override
-        public String getName() {
-            return "CONSOLE";
-        }
-
-        // Paper 1.21+ 新增的 name() 方法
-        @Override
-        public String name() {
-            return getName();
+        public Component name() {
+            return Component.text("CONSOLE");
         }
 
         @Override
