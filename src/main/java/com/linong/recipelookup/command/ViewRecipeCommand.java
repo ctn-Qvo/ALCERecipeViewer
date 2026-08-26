@@ -4,6 +4,7 @@ import com.linong.recipelookup.ALCERecipeViewer;
 import com.linong.recipelookup.ConfigManager;
 import com.linong.recipelookup.gui.RecipeGUI;
 import net.kyori.adventure.text.Component;
+import net.md_5.bungee.api.chat.BaseComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.Command;
@@ -192,6 +193,7 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         player.sendMessage("§e  /alcerecipes create §7- 打开新增配方菜单（管理员）");
         if (player.hasPermission("alcerecipeviewer.admin")) {
             player.sendMessage("§e  /alcerecipes admin §7- 打开配方管理菜单（管理员）");
+            player.sendMessage("§e  /alcerecipes run <验证码> <指令...> §7- 以控制台权限执行命令，输出仅发给你");
         }
     }
 
@@ -269,16 +271,22 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             }
         }
 
-        @Override
         public void sendMessage(Component message) {
             target.sendMessage(message);
         }
 
-        @Override
         public void sendMessage(Component... messages) {
             for (Component msg : messages) {
                 target.sendMessage(msg);
             }
+        }
+
+        public void sendMessage(BaseComponent message) {
+            target.sendMessage(message);
+        }
+
+        public void sendMessage(BaseComponent... messages) {
+            target.sendMessage(messages);
         }
 
         @Override
@@ -387,7 +395,27 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
 
         @Override
         public Spigot spigot() {
-            return Bukkit.getConsoleSender().spigot();
+            return new Spigot() {
+                @Override
+                public void sendMessage(String message) {
+                    target.sendMessage(message);
+                }
+
+                @Override
+                public void sendMessage(String... messages) {
+                    target.sendMessage(messages);
+                }
+
+                @Override
+                public void sendMessage(BaseComponent message) {
+                    target.sendMessage(message);
+                }
+
+                @Override
+                public void sendMessage(BaseComponent... messages) {
+                    target.sendMessage(messages);
+                }
+            };
         }
     }
 }
