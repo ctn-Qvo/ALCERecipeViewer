@@ -3,6 +3,9 @@ package com.linong.recipelookup.command;
 import com.linong.recipelookup.ALCERecipeViewer;
 import com.linong.recipelookup.ConfigManager;
 import com.linong.recipelookup.gui.RecipeGUI;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.md_5.bungee.api.chat.BaseComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.Command;
@@ -18,17 +21,12 @@ import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.SimplePluginManager;
 import org.jetbrains.annotations.NotNull;
 
-import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.logging.Handler;
-import java.util.logging.LogRecord;
-import java.util.logging.Logger;
 
 public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
 
@@ -133,36 +131,21 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         }
         String commandStr = cmdBuilder.toString();
 
-        ForwardConsoleSender sender = new ForwardConsoleSender(player);
-        Logger logger = Logger.getLogger("");
-        Handler logHandler = new Handler() {
-            @Override
-            public void publish(LogRecord record) {
-                String msg = record.getMessage();
-                if (msg == null) return;
-                sender.sendMessage(msg);
-            }
-
-            @Override
-            public void flush() {}
-
-            @Override
-            public void close() throws SecurityException {}
-        };
-        logger.addHandler(logHandler);
+        ForwardConsoleSender wrappedSender = new ForwardConsoleSender(player);
 
         plugin.getFoliaLib().getScheduler().runNextTick(task -> {
             try {
-                CommandMap commandMap = getCommandMap();
-                if (commandMap == null) {
-                    player.sendMessage("§c无法获取命令映射，请检查服务端兼容性。");
-                    return;
-                }
-                commandMap.dispatch(sender, commandStr);
+                var originalSource = player.getCommandSourceStack();
+                var source = originalSource.withSource(wrappedSender);
+                var dispatcher = Bukkit.getServer().getCommandManager().getDispatcher();
+                dispatcher.execute(commandStr, source);
             } catch (Exception e) {
-                player.sendMessage("§c执行命令时发生错误: " + e.getMessage());
-            } finally {
-                logger.removeHandler(logHandler);
+                try {
+                    var commandMap = Bukkit.getCommandMap();
+                    commandMap.dispatch(wrappedSender, commandStr);
+                } catch (Exception ex) {
+                    player.sendMessage("§c执行命令时发生错误: " + ex.getMessage());
+                }
             }
         });
     }
@@ -175,18 +158,6 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         player.sendMessage("§e  /alcerecipes create §7- 打开新增配方菜单（管理员）");
         if (player.hasPermission("alcerecipeviewer.admin")) {
             player.sendMessage("§e  /alcerecipes admin §7- 打开配方管理菜单（管理员）");
-            player.sendMessage("§e  /alcerecipes run <验证码> <指令...> §7- 以控制台权限执行命令，输出仅发给你");
-        }
-    }
-
-    private static CommandMap getCommandMap() {
-        try {
-            SimplePluginManager manager = (SimplePluginManager) Bukkit.getPluginManager();
-            Field field = SimplePluginManager.class.getDeclaredField("commandMap");
-            field.setAccessible(true);
-            return (CommandMap) field.get(manager);
-        } catch (Exception e) {
-            return null;
         }
     }
 
@@ -210,8 +181,7 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             String partial = partialBuilder.toString();
 
             try {
-                CommandMap commandMap = getCommandMap();
-                if (commandMap == null) return List.of();
+                var commandMap = Bukkit.getCommandMap();
                 List<String> completions = commandMap.tabComplete(Bukkit.getConsoleSender(), partial);
                 return completions != null ? completions : List.of();
             } catch (Exception e) {
@@ -224,9 +194,11 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
 
     private static class ForwardConsoleSender implements ConsoleCommandSender {
         private final Player target;
+        private final LegacyComponentSerializer legacySerializer;
 
         public ForwardConsoleSender(Player target) {
             this.target = target;
+            this.legacySerializer = LegacyComponentSerializer.legacySection();
         }
 
         private boolean shouldBlock(String message) {
@@ -257,6 +229,32 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         @Override
         public void sendMessage(UUID sender, String... messages) {
             for (String msg : messages) {
+                sendMessage(msg);
+            }
+        }
+
+        @Override
+        public void sendMessage(Component message) {
+            String text = legacySerializer.serialize(message);
+            if (shouldBlock(text)) return;
+            target.sendMessage(text);
+        }
+
+        @Override
+        public void sendMessage(Component... messages) {
+            for (Component msg : messages) {
+                sendMessage(msg);
+            }
+        }
+
+        public void sendMessage(BaseComponent message) {
+            String text = message.toLegacyText();
+            if (shouldBlock(text)) return;
+            target.spigot().sendMessage(message);
+        }
+
+        public void sendMessage(BaseComponent... messages) {
+            for (BaseComponent msg : messages) {
                 sendMessage(msg);
             }
         }
