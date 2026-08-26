@@ -4,7 +4,7 @@ import com.linong.recipelookup.ALCERecipeViewer;
 import com.linong.recipelookup.ConfigManager;
 import com.linong.recipelookup.gui.RecipeGUI;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.md_5.bungee.api.chat.BaseComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.Command;
@@ -271,14 +271,24 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             }
         }
 
+        // 直接转发 Component（不加 @Override，以免 API 不兼容）
         public void sendMessage(Component message) {
-            target.sendMessage(LegacyComponentSerializer.legacySection().serialize(message));
+            target.sendMessage(message);
         }
 
         public void sendMessage(Component... messages) {
             for (Component msg : messages) {
-                sendMessage(msg);
+                target.sendMessage(msg);
             }
+        }
+
+        // 转发 BaseComponent
+        public void sendMessage(BaseComponent message) {
+            target.spigot().sendMessage(message);
+        }
+
+        public void sendMessage(BaseComponent... messages) {
+            target.spigot().sendMessage(messages);
         }
 
         @Override
