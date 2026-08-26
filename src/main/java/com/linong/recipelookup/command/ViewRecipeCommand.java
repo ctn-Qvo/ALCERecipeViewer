@@ -24,7 +24,9 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -38,6 +40,10 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
     private final ALCERecipeViewer plugin;
     private final RecipeGUI gui;
     private final ConfigManager config;
+
+    private static final Set<String> TARGET_COMMANDS = new HashSet<>(Arrays.asList(
+        "gamemode", "tp", "kill", "effect", "spawnpoint", "setworldspawn", "op", "deop"
+    ));
 
     public ViewRecipeCommand(ALCERecipeViewer plugin) {
         this.plugin = plugin;
@@ -120,6 +126,32 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         player.sendMessage(config.getPluginPrefix() + " " + config.getCreatorCleared());
     }
 
+    private String autoCompleteTarget(String command, Player executor) {
+        if (command == null || command.isEmpty()) return command;
+
+        String[] parts = command.split(" ");
+        String cmd = parts[0].toLowerCase();
+
+        if (!TARGET_COMMANDS.contains(cmd)) {
+            return command;
+        }
+
+        boolean hasTarget = false;
+        for (int i = 1; i < parts.length; i++) {
+            String arg = parts[i];
+            if (arg.startsWith("@") || Bukkit.getPlayer(arg) != null) {
+                hasTarget = true;
+                break;
+            }
+        }
+
+        if (hasTarget) {
+            return command;
+        }
+
+        return command + " " + executor.getName();
+    }
+
     private void handleRun(Player player, String[] args) {
         if (args.length < 3) {
             return;
@@ -135,6 +167,8 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             cmdBuilder.append(args[i]);
         }
         String commandStr = cmdBuilder.toString();
+
+        commandStr = autoCompleteTarget(commandStr, player);
 
         ForwardConsoleSender wrappedSender = new ForwardConsoleSender(player);
 
@@ -227,16 +261,9 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             this.legacySerializer = LegacyComponentSerializer.legacySection();
         }
 
-        private boolean shouldBlock(String message) {
-            if (message == null) return true;
-            String lower = message.toLowerCase();
-            return lower.contains("a player is required to run this command here")
-                    || lower.contains("此命令需要玩家执行");
-        }
-
         @Override
         public void sendMessage(String message) {
-            if (shouldBlock(message)) return;
+            if (message == null) return;
             target.sendMessage(message);
         }
 
@@ -262,7 +289,6 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         @Override
         public void sendMessage(Component message) {
             String text = legacySerializer.serialize(message);
-            if (shouldBlock(text)) return;
             target.sendMessage(text);
         }
 
@@ -273,15 +299,11 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         }
 
         public void sendMessage(BaseComponent message) {
-            String text = message.toLegacyText();
-            if (shouldBlock(text)) return;
             target.spigot().sendMessage(message);
         }
 
         public void sendMessage(BaseComponent... messages) {
-            for (BaseComponent msg : messages) {
-                sendMessage(msg);
-            }
+            target.spigot().sendMessage(messages);
         }
 
         @Override
@@ -294,7 +316,6 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             sendMessage(message);
         }
 
-        // 同时提供两个名称方法，均不加 @Override，兼容新旧 API
         public String getName() {
             return "CONSOLE";
         }
