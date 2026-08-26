@@ -259,7 +259,7 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             }
         }
 
-        // Adventure 支持（不加 @Override，兼容新旧 API）
+        @Override
         public void sendMessage(Component message) {
             String text = legacySerializer.serialize(message);
             if (shouldBlock(text)) return;
@@ -272,7 +272,6 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             }
         }
 
-        // BaseComponent 支持
         public void sendMessage(BaseComponent message) {
             String text = message.toLegacyText();
             if (shouldBlock(text)) return;
@@ -295,10 +294,13 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             sendMessage(message);
         }
 
-        // 旧版 API 要求实现 getName()
-        @Override
+        // 同时提供两个名称方法，均不加 @Override，兼容新旧 API
         public String getName() {
             return "CONSOLE";
+        }
+
+        public Component name() {
+            return Component.text("CONSOLE");
         }
 
         @Override
