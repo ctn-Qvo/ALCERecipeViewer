@@ -3,6 +3,7 @@ package com.linong.recipelookup.command;
 import com.linong.recipelookup.ALCERecipeViewer;
 import com.linong.recipelookup.ConfigManager;
 import com.linong.recipelookup.gui.RecipeGUI;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.Command;
@@ -244,42 +245,50 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             this.target = target;
         }
 
-        private void forward(String message) {
-            target.sendMessage(message);
-        }
-
         @Override
         public void sendMessage(String message) {
-            forward(message);
+            target.sendMessage(message);
         }
 
         @Override
         public void sendMessage(String... messages) {
             for (String msg : messages) {
-                forward(msg);
+                target.sendMessage(msg);
             }
         }
 
         @Override
         public void sendMessage(UUID sender, String message) {
-            forward(message);
+            target.sendMessage(message);
         }
 
         @Override
         public void sendMessage(UUID sender, String... messages) {
             for (String msg : messages) {
-                forward(msg);
+                target.sendMessage(msg);
+            }
+        }
+
+        @Override
+        public void sendMessage(Component message) {
+            target.sendMessage(message);
+        }
+
+        @Override
+        public void sendMessage(Component... messages) {
+            for (Component msg : messages) {
+                target.sendMessage(msg);
             }
         }
 
         @Override
         public void sendRawMessage(String message) {
-            forward(message);
+            target.sendMessage(message);
         }
 
         @Override
         public void sendRawMessage(UUID sender, String message) {
-            forward(message);
+            target.sendMessage(message);
         }
 
         @Override
