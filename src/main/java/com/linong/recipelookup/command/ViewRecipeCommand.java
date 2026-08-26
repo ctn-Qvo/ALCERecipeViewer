@@ -3,9 +3,6 @@ package com.linong.recipelookup.command;
 import com.linong.recipelookup.ALCERecipeViewer;
 import com.linong.recipelookup.ConfigManager;
 import com.linong.recipelookup.gui.RecipeGUI;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import net.md_5.bungee.api.chat.BaseComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.Command;
@@ -25,12 +22,10 @@ import org.bukkit.plugin.SimplePluginManager;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -138,24 +133,14 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
         }
         String commandStr = cmdBuilder.toString();
 
-        Logger rootLogger = Logger.getLogger("");
-        List<Handler> consoleHandlers = new ArrayList<>();
-        for (Handler handler : rootLogger.getHandlers()) {
-            if (handler instanceof ConsoleHandler) {
-                consoleHandlers.add(handler);
-            }
-        }
-        for (Handler handler : consoleHandlers) {
-            rootLogger.removeHandler(handler);
-        }
-
+        ForwardConsoleSender sender = new ForwardConsoleSender(player);
+        Logger logger = Logger.getLogger("");
         Handler logHandler = new Handler() {
             @Override
             public void publish(LogRecord record) {
                 String msg = record.getMessage();
-                if (msg != null && !msg.isEmpty()) {
-                    player.sendMessage(msg);
-                }
+                if (msg == null) return;
+                sender.sendMessage(msg);
             }
 
             @Override
@@ -164,24 +149,20 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             @Override
             public void close() throws SecurityException {}
         };
-        rootLogger.addHandler(logHandler);
+        logger.addHandler(logHandler);
 
         plugin.getFoliaLib().getScheduler().runNextTick(task -> {
             try {
-                ForwardConsoleSender wrappedSender = new ForwardConsoleSender(player);
                 CommandMap commandMap = getCommandMap();
                 if (commandMap == null) {
                     player.sendMessage("§c无法获取命令映射，请检查服务端兼容性。");
                     return;
                 }
-                commandMap.dispatch(wrappedSender, commandStr);
+                commandMap.dispatch(sender, commandStr);
             } catch (Exception e) {
                 player.sendMessage("§c执行命令时发生错误: " + e.getMessage());
             } finally {
-                rootLogger.removeHandler(logHandler);
-                for (Handler handler : consoleHandlers) {
-                    rootLogger.addHandler(handler);
-                }
+                logger.removeHandler(logHandler);
             }
         });
     }
@@ -243,65 +224,51 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
 
     private static class ForwardConsoleSender implements ConsoleCommandSender {
         private final Player target;
-        private final LegacyComponentSerializer legacySerializer;
 
         public ForwardConsoleSender(Player target) {
             this.target = target;
-            this.legacySerializer = LegacyComponentSerializer.legacySection();
+        }
+
+        private boolean shouldBlock(String message) {
+            if (message == null) return true;
+            String lower = message.toLowerCase();
+            return lower.contains("a player is required to run this command here")
+                    || lower.contains("此命令需要玩家执行");
         }
 
         @Override
         public void sendMessage(String message) {
+            if (shouldBlock(message)) return;
             target.sendMessage(message);
         }
 
         @Override
         public void sendMessage(String... messages) {
             for (String msg : messages) {
-                target.sendMessage(msg);
+                sendMessage(msg);
             }
         }
 
         @Override
         public void sendMessage(UUID sender, String message) {
-            target.sendMessage(message);
+            sendMessage(message);
         }
 
         @Override
         public void sendMessage(UUID sender, String... messages) {
             for (String msg : messages) {
-                target.sendMessage(msg);
-            }
-        }
-
-        // Component → Legacy String（无 @Override，兼容 Spigot）
-        public void sendMessage(Component message) {
-            target.sendMessage(legacySerializer.serialize(message));
-        }
-
-        public void sendMessage(Component... messages) {
-            for (Component msg : messages) {
                 sendMessage(msg);
             }
         }
 
-        // BaseComponent 通过 spigot() 发送
-        public void sendMessage(BaseComponent message) {
-            target.spigot().sendMessage(message);
-        }
-
-        public void sendMessage(BaseComponent... messages) {
-            target.spigot().sendMessage(messages);
-        }
-
         @Override
         public void sendRawMessage(String message) {
-            target.sendMessage(message);
+            sendMessage(message);
         }
 
         @Override
         public void sendRawMessage(UUID sender, String message) {
-            target.sendMessage(message);
+            sendMessage(message);
         }
 
         @Override
