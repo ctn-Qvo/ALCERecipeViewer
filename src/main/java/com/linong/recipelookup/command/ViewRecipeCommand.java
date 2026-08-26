@@ -4,6 +4,7 @@ import com.linong.recipelookup.ALCERecipeViewer;
 import com.linong.recipelookup.ConfigManager;
 import com.linong.recipelookup.gui.RecipeGUI;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.md_5.bungee.api.chat.BaseComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
@@ -242,9 +243,11 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
 
     private static class ForwardConsoleSender implements ConsoleCommandSender {
         private final Player target;
+        private final LegacyComponentSerializer legacySerializer;
 
         public ForwardConsoleSender(Player target) {
             this.target = target;
+            this.legacySerializer = LegacyComponentSerializer.legacySection();
         }
 
         @Override
@@ -271,18 +274,18 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             }
         }
 
-        // 直接转发 Component（不加 @Override，以免 API 不兼容）
+        // Component → Legacy String（无 @Override，兼容 Spigot）
         public void sendMessage(Component message) {
-            target.sendMessage(message);
+            target.sendMessage(legacySerializer.serialize(message));
         }
 
         public void sendMessage(Component... messages) {
             for (Component msg : messages) {
-                target.sendMessage(msg);
+                sendMessage(msg);
             }
         }
 
-        // 转发 BaseComponent
+        // BaseComponent 通过 spigot() 发送
         public void sendMessage(BaseComponent message) {
             target.spigot().sendMessage(message);
         }
