@@ -166,9 +166,7 @@ public class ViewRecipeCommand implements CommandExecutor, TabCompleter {
             if (i > 2) cmdBuilder.append(' ');
             cmdBuilder.append(args[i]);
         }
-        String commandStr = cmdBuilder.toString();
-
-        commandStr = autoCompleteTarget(commandStr, player);
+        final String commandStr = autoCompleteTarget(cmdBuilder.toString(), player);
 
         final ForwardConsoleSender wrappedSender = new ForwardConsoleSender(player);
 
